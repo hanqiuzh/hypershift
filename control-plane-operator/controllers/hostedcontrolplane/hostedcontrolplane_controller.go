@@ -1575,8 +1575,12 @@ func (r *HostedControlPlaneReconciler) reconcileOpenShiftOAuthAPIServer(ctx cont
 
 func (r *HostedControlPlaneReconciler) reconcileDefaultIngressController(ctx context.Context, hcp *hyperv1.HostedControlPlane) error {
 	ingressControllerManifest := manifests.IngressDefaultIngressControllerWorkerManifest(hcp.Namespace)
+	replicas := int32(2)
+	if hcp.Spec.InfrastructureAvailabilityPolicy != hyperv1.HighlyAvailable {
+		replicas = 1
+	}
 	if _, err := controllerutil.CreateOrUpdate(ctx, r, ingressControllerManifest, func() error {
-		return ingress.ReconcileDefaultIngressControllerWorkerManifest(ingressControllerManifest, config.OwnerRefFrom(hcp), config.IngressSubdomain(hcp), hcp.Spec.Platform.Type)
+		return ingress.ReconcileDefaultIngressControllerWorkerManifest(ingressControllerManifest, config.OwnerRefFrom(hcp), config.IngressSubdomain(hcp), hcp.Spec.Platform.Type, replicas)
 	}); err != nil {
 		return fmt.Errorf("failed to reconcile default ingress controller worker manifest: %w", err)
 	}
@@ -1781,6 +1785,12 @@ func (r *HostedControlPlaneReconciler) generateControlPlaneManifests(ctx context
 	params.ImageRegistryHTTPSecret = generateImageRegistrySecret()
 	params.APIAvailabilityPolicy = render.SingleReplica
 	params.ControllerAvailabilityPolicy = render.SingleReplica
+	if hcp.Spec.InfrastructureAvailabilityPolicy != hyperv1.HighlyAvailable {
+		params.InfrastructureAvailabilityPolicy = render.SingleReplica
+	} else {
+		params.InfrastructureAvailabilityPolicy = render.HighlyAvailable
+	}
+
 	params.SSHKey = string(sshKeyData)
 
 	combinedCA := manifests.CombinedCAConfigMap(hcp.Namespace)

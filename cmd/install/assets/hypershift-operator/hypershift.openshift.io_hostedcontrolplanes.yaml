@@ -188,6 +188,11 @@ spec:
                 type: boolean
               infraID:
                 type: string
+              infrastructureAvailabilityPolicy:
+                description: InfrastructureAvailabilityPolicy specifies whether to
+                  run infrastructure services that do not run on control plane nodes
+                  in HA mode Defaults to SingleReplica when not set
+                type: string
               issuerURL:
                 type: string
               kubeconfig:

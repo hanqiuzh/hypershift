@@ -52,6 +52,12 @@ type HostedControlPlaneSpec struct {
 	// +optional
 	ControllerAvailabilityPolicy AvailabilityPolicy `json:"controllerAvailabilityPolicy,omitempty"`
 
+	// InfrastructureAvailabilityPolicy specifies whether to run infrastructure services that
+	// do not run on control plane nodes in HA mode
+	// Defaults to SingleReplica when not set
+	// +optional
+	InfrastructureAvailabilityPolicy AvailabilityPolicy `json:"infrastructureAvailabilityPolicy,omitempty"`
+
 	// FIPS specifies if the nodes for the cluster will be running in FIPS mode
 	// +optional
 	FIPS bool `json:"fips"`
