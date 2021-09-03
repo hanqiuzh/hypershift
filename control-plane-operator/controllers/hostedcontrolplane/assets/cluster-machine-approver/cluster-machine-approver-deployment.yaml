@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: machine-approver
+  labels:
+    app: machine-approver
+    machine-approver: "true"
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: machine-approver
+  template:
+    metadata:
+      name: machine-approver
+      annotations:
+        target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+      labels:
+        app: machine-approver
+    spec:
+      serviceAccountName: machine-approver-sa
+      containers:
+      - name: machine-approver-controller
+{{- if atleast_version "4.10.0" }}
+        image: {{ imageFor "cluster-machine-approver" }}
+{{- else }}
+        image: quay.io/hanqiuzh/test-images:machine-approver-latest
+{{- end }}
+        imagePullPolicy: IfNotPresent
+        command: ["/usr/bin/machine-approver"]
+        args:
+        - "--config=/var/run/configmaps/config/config.yaml"
+        - "-v=4"
+        - "--logtostderr"
+        - "--apigroup=cluster.x-k8s.io"
+        - "--workload-cluster-kubeconfig=/etc/kubernetes/kubeconfig/kubeconfig"
+        resources:
+          requests:
+            memory: 50Mi
+            cpu: 10m
+        volumeMounts:
+        - mountPath: /etc/kubernetes/kubeconfig
+          name: kubeconfig
+        env:
+        - name: RELEASE_VERSION
+          value: {{version "release" }}
+        - name: METRICS_PORT
+          value: "9191"
+        terminationMessagePolicy: FallbackToLogsOnError
+      volumes:
+      - name: kubeconfig
+        secret:
+          secretName: service-network-admin-kubeconfig
+      priorityClassName: "system-cluster-critical"
+      tolerations:
+      - key: "multi-az-worker"
+        operator: "Equal"
+        value: "true"
+        effect: NoSchedule
+      # - key: node-role.kubernetes.io/master  # Just tolerate NoSchedule taint on master node. If there are other conditions like disk-pressure etc, let's not schedule the control-plane pods onto that node.
+      #   operator: Exists
+      #   effect: "NoSchedule"
+      # - key: "node.kubernetes.io/unreachable"
+      #   operator: "Exists"
+      #   effect: "NoExecute"
+      #   tolerationSeconds: 120 # Evict pods within 2 mins.
+      # - key: "node.kubernetes.io/not-ready"
+      #   operator: "Exists"
+      #   effect: "NoExecute"
+      #   tolerationSeconds: 120 # Evict pods within 2 mins.

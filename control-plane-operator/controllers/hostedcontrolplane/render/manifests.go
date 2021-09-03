@@ -64,6 +64,7 @@ func (c *clusterManifestContext) setupManifests() {
 	c.userManifestsBootstrapper()
 	c.machineConfigServer()
 	c.ignitionConfigs()
+	c.clusterMachineApprover()
 }
 
 func (c *clusterManifestContext) hostedClusterConfigOperator() {
@@ -94,6 +95,15 @@ func (c *clusterManifestContext) machineConfigServer() {
 	c.addManifestFiles(
 		"machine-config-server/machine-config-server-configmap.yaml",
 		"machine-config-server/machine-config-server-kubeconfig-secret.yaml",
+	)
+}
+
+func (c *clusterManifestContext) clusterMachineApprover() {
+	c.addManifestFiles(
+		"cluster-machine-approver/cluster-machine-approver-deployment.yaml",
+		"cluster-machine-approver/cluster-machine-approver-rolebinding.yaml",
+		"cluster-machine-approver/cluster-machine-approver-role.yaml",
+		"cluster-machine-approver/cluster-machine-approver-serviceaccount.yaml",
 	)
 }
 
