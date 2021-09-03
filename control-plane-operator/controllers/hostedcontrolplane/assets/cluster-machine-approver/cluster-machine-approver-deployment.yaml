@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: machine-approver
+  labels:
+    app: machine-approver
+    machine-approver: "true"
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: machine-approver
+  template:
+    metadata:
+      name: machine-approver
+      annotations:
+        target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+      labels:
+        app: machine-approver
+    spec:
+      serviceAccountName: machine-approver-sa
+      containers:
+      - name: machine-approver-controller
+{{- if atleast_version "4.10.0" }}
+        image: {{ imageFor "cluster-machine-approver" }}
+{{- else }}
+        image: quay.io/hanqiuzh/origin-cluster-machine-approver@sha256:ae555a2d6bbf99ea5ed0764216f06c759ac0fd861340afda8f714a29bd2da44b
+{{- end }}
+        imagePullPolicy: IfNotPresent
+        command: ["/usr/bin/machine-approver"]
+        args:
+        - "--config=/var/run/configmaps/config/config.yaml"
+        - "-v=4"
+        - "--logtostderr"
+        - "--apigroup=cluster.x-k8s.io"
+        - "--workload-cluster-kubeconfig=/etc/kubernetes/kubeconfig/kubeconfig"
+        - "--machine-namespace={{ .Namespace }}"
+        resources:
+          requests:
+            memory: 50Mi
+            cpu: 10m
+        volumeMounts:
+        - mountPath: /etc/kubernetes/kubeconfig
+          name: kubeconfig
+        - mountPath: /var/run/configmaps/config
+          name: config
+        env:
+        - name: RELEASE_VERSION
+          value: {{version "release" }}
+        terminationMessagePolicy: FallbackToLogsOnError
+      volumes:
+      - name: kubeconfig
+        secret:
+          secretName: service-network-admin-kubeconfig
+      - name: config
+        configMap:
+          defaultMode: 440
+          name: machine-approver-config
+          optional: true
+      priorityClassName: "system-cluster-critical"
+      tolerations:
+      - key: "multi-az-worker"
+        operator: "Equal"
+        value: "true"
+        effect: NoSchedule
+
