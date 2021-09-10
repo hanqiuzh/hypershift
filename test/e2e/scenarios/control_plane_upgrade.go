@@ -68,11 +68,12 @@ func TestUpgradeControlPlane(ctx context.Context, o TestUpgradeControlPlaneOptio
 			AWSCredentialsFile: o.AWSCredentialsFile,
 			Region:             o.AWSRegion,
 			// TODO: generate a key on the fly
-			SSHKeyFile:       "",
-			NodePoolReplicas: 2,
-			InstanceType:     "m4.large",
-			BaseDomain:       o.BaseDomain,
-			NetworkType:      string(hyperv1.OpenShiftSDN),
+			SSHKeyFile:                   "",
+			NodePoolReplicas:             1,
+			InstanceType:                 "m4.large",
+			BaseDomain:                   o.BaseDomain,
+			NetworkType:                  string(hyperv1.OpenShiftSDN),
+			InfrastructureAvailabilityHA: false,
 		}
 		err := cmdcluster.CreateCluster(ctx, createClusterOpts)
 		g.Expect(err).NotTo(HaveOccurred(), "failed to create cluster")

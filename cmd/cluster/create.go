@@ -23,26 +23,27 @@ import (
 )
 
 type Options struct {
-	Namespace          string
-	Name               string
-	ReleaseImage       string
-	PullSecretFile     string
-	AWSCredentialsFile string
-	SSHKeyFile         string
-	NodePoolReplicas   int32
-	Render             bool
-	InfraID            string
-	InfrastructureJSON string
-	IAMJSON            string
-	InstanceType       string
-	Region             string
-	BaseDomain         string
-	IssuerURL          string
-	PublicZoneID       string
-	PrivateZoneID      string
-	Annotations        []string
-	NetworkType        string
-	FIPS               bool
+	Namespace                    string
+	Name                         string
+	ReleaseImage                 string
+	PullSecretFile               string
+	AWSCredentialsFile           string
+	SSHKeyFile                   string
+	NodePoolReplicas             int32
+	Render                       bool
+	InfraID                      string
+	InfrastructureJSON           string
+	IAMJSON                      string
+	InstanceType                 string
+	Region                       string
+	BaseDomain                   string
+	IssuerURL                    string
+	PublicZoneID                 string
+	PrivateZoneID                string
+	Annotations                  []string
+	NetworkType                  string
+	FIPS                         bool
+	InfrastructureAvailabilityHA bool
 }
 
 func NewCreateCommand() *cobra.Command {
@@ -70,21 +71,22 @@ func NewCreateCommand() *cobra.Command {
 	releaseImage := "quay.io/openshift-release-dev/ocp-release:4.8.6-x86_64"
 
 	opts := Options{
-		Namespace:          "clusters",
-		Name:               "example",
-		ReleaseImage:       releaseImage,
-		PullSecretFile:     "",
-		AWSCredentialsFile: "",
-		SSHKeyFile:         "",
-		NodePoolReplicas:   2,
-		Render:             false,
-		InfrastructureJSON: "",
-		Region:             "us-east-1",
-		InfraID:            "",
-		InstanceType:       "m4.large",
-		Annotations:        []string{},
-		NetworkType:        string(v1alpha1.OpenShiftSDN),
-		FIPS:               false,
+		Namespace:                    "clusters",
+		Name:                         "example",
+		ReleaseImage:                 releaseImage,
+		PullSecretFile:               "",
+		AWSCredentialsFile:           "",
+		SSHKeyFile:                   "",
+		NodePoolReplicas:             2,
+		Render:                       false,
+		InfrastructureJSON:           "",
+		Region:                       "us-east-1",
+		InfraID:                      "",
+		InstanceType:                 "m4.large",
+		Annotations:                  []string{},
+		NetworkType:                  string(v1alpha1.OpenShiftSDN),
+		FIPS:                         false,
+		InfrastructureAvailabilityHA: true,
 	}
 
 	cmd.Flags().StringVar(&opts.Namespace, "namespace", opts.Namespace, "A namespace to contain the generated resources")
@@ -104,6 +106,7 @@ func NewCreateCommand() *cobra.Command {
 	cmd.Flags().StringArrayVar(&opts.Annotations, "annotations", opts.Annotations, "Annotations to apply to the hostedcluster (key=value). Can be specified multiple times.")
 	cmd.Flags().StringVar(&opts.NetworkType, "network-type", opts.NetworkType, "Enum specifying the cluster SDN provider. Supports either Calico or OpenshiftSDN.")
 	cmd.Flags().BoolVar(&opts.FIPS, "fips", opts.FIPS, "Enables FIPS mode for nodes in the cluster")
+	cmd.Flags().BoolVar(&opts.InfrastructureAvailabilityHA, "infrastructure-availability-ha", true, "Run infrastructure services that run on the guest cluster nodes in HA mode.")
 
 	cmd.MarkFlagRequired("pull-secret")
 	cmd.MarkFlagRequired("aws-creds")
@@ -217,21 +220,22 @@ func CreateCluster(ctx context.Context, opts Options) error {
 	}
 
 	exampleObjects := apifixtures.ExampleOptions{
-		Namespace:        opts.Namespace,
-		Name:             infra.Name,
-		Annotations:      annotations,
-		ReleaseImage:     opts.ReleaseImage,
-		PullSecret:       pullSecret,
-		IssuerURL:        iamInfo.IssuerURL,
-		SSHKey:           sshKey,
-		NodePoolReplicas: opts.NodePoolReplicas,
-		InfraID:          infra.InfraID,
-		ComputeCIDR:      infra.ComputeCIDR,
-		BaseDomain:       infra.BaseDomain,
-		PublicZoneID:     infra.PublicZoneID,
-		PrivateZoneID:    infra.PrivateZoneID,
-		NetworkType:      v1alpha1.NetworkType(opts.NetworkType),
-		FIPS:             opts.FIPS,
+		Namespace:                    opts.Namespace,
+		Name:                         infra.Name,
+		Annotations:                  annotations,
+		ReleaseImage:                 opts.ReleaseImage,
+		PullSecret:                   pullSecret,
+		IssuerURL:                    iamInfo.IssuerURL,
+		SSHKey:                       sshKey,
+		NodePoolReplicas:             opts.NodePoolReplicas,
+		InfraID:                      infra.InfraID,
+		ComputeCIDR:                  infra.ComputeCIDR,
+		BaseDomain:                   infra.BaseDomain,
+		PublicZoneID:                 infra.PublicZoneID,
+		PrivateZoneID:                infra.PrivateZoneID,
+		NetworkType:                  v1alpha1.NetworkType(opts.NetworkType),
+		FIPS:                         opts.FIPS,
+		InfrastructureAvailabilityHA: opts.InfrastructureAvailabilityHA,
 		AWS: apifixtures.ExampleAWSOptions{
 			Region:                                 infra.Region,
 			Zone:                                   infra.Zone,

@@ -39,22 +39,23 @@ func (o *ExampleResources) AsObjects() []crclient.Object {
 }
 
 type ExampleOptions struct {
-	Namespace        string
-	Name             string
-	ReleaseImage     string
-	PullSecret       []byte
-	IssuerURL        string
-	SSHKey           []byte
-	NodePoolReplicas int32
-	InfraID          string
-	ComputeCIDR      string
-	BaseDomain       string
-	PublicZoneID     string
-	PrivateZoneID    string
-	Annotations      map[string]string
-	FIPS             bool
-	AWS              ExampleAWSOptions
-	NetworkType      hyperv1.NetworkType
+	Namespace                    string
+	Name                         string
+	ReleaseImage                 string
+	PullSecret                   []byte
+	IssuerURL                    string
+	SSHKey                       []byte
+	NodePoolReplicas             int32
+	InfraID                      string
+	ComputeCIDR                  string
+	BaseDomain                   string
+	PublicZoneID                 string
+	PrivateZoneID                string
+	Annotations                  map[string]string
+	FIPS                         bool
+	AWS                          ExampleAWSOptions
+	NetworkType                  hyperv1.NetworkType
+	InfrastructureAvailabilityHA bool
 }
 
 type ExampleAWSOptions struct {
@@ -143,6 +144,11 @@ aws_secret_access_key = %s
 		sshKeyReference = corev1.LocalObjectReference{Name: sshKeySecret.Name}
 	}
 
+	infrastructureAvailabilityPolicy := hyperv1.HighlyAvailable
+	if o.InfrastructureAvailabilityHA == false {
+		infrastructureAvailabilityPolicy = hyperv1.SingleReplica
+	}
+
 	cluster := &hyperv1.HostedCluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "HostedCluster",
@@ -166,6 +172,7 @@ aws_secret_access_key = %s
 				MachineCIDR: o.ComputeCIDR,
 				NetworkType: o.NetworkType,
 			},
+			InfrastructureAvailabilityPolicy: infrastructureAvailabilityPolicy,
 			Services: []hyperv1.ServicePublishingStrategyMapping{
 				{
 					Service: hyperv1.APIServer,

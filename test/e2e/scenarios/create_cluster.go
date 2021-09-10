@@ -66,11 +66,12 @@ func TestCreateCluster(ctx context.Context, o TestCreateClusterOptions) func(t *
 			AWSCredentialsFile: o.AWSCredentialsFile,
 			Region:             o.AWSRegion,
 			// TODO: generate a key on the fly
-			SSHKeyFile:       "",
-			NodePoolReplicas: 2,
-			InstanceType:     "m4.large",
-			BaseDomain:       o.BaseDomain,
-			NetworkType:      string(hyperv1.OpenShiftSDN),
+			SSHKeyFile:                   "",
+			NodePoolReplicas:             1,
+			InstanceType:                 "m4.large",
+			BaseDomain:                   o.BaseDomain,
+			NetworkType:                  string(hyperv1.OpenShiftSDN),
+			InfrastructureAvailabilityHA: false,
 		}
 		t.Logf("Creating a new cluster. Options: %v", createClusterOpts)
 		err := cmdcluster.CreateCluster(ctx, createClusterOpts)
