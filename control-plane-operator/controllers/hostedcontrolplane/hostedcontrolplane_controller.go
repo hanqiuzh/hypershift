@@ -58,6 +58,7 @@ import (
 	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/kcm"
 	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/konnectivity"
 	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/manifests"
+	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/nodebootstrapper"
 	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/oapi"
 	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/oauth"
 	"github.com/openshift/hypershift/control-plane-operator/controllers/hostedcontrolplane/ocm"
@@ -984,6 +985,11 @@ func (r *HostedControlPlaneReconciler) ensureControlPlane(ctx context.Context, h
 		}
 	}
 
+	err = nodebootstrapper.ReconcileBootstrapKubeconfig(r.Client, ctx, hcp)
+	if err != nil {
+		return fmt.Errorf("couldn't create cluster node bootstrap kubeconfig: %w", err)
+	}
+
 	manifests, err := r.generateControlPlaneManifests(ctx, hcp, infraStatus, releaseImage)
 	if err != nil {
 		return err
@@ -1105,14 +1111,6 @@ func (r *HostedControlPlaneReconciler) reconcilePKI(ctx context.Context, hcp *hy
 		return pki.ReconcileKASAdminClientCertSecret(kasAdminClientCertSecret, rootCASecret, p.OwnerRef)
 	}); err != nil {
 		return fmt.Errorf("failed to reconcile kas admin client secret: %w", err)
-	}
-
-	// KAS bootstrap client cert secret
-	kasBootstrapClientCertSecret := manifests.KASMachineBootstrapClientCertSecret(hcp.Namespace)
-	if _, err := controllerutil.CreateOrUpdate(ctx, r, kasBootstrapClientCertSecret, func() error {
-		return pki.ReconcileKASMachineBootstrapClientCertSecret(kasBootstrapClientCertSecret, signerCASecret, p.OwnerRef)
-	}); err != nil {
-		return fmt.Errorf("failed to reconcile kas bootstrap client secret: %w", err)
 	}
 
 	// Service account signing key secret
@@ -1420,10 +1418,6 @@ func (r *HostedControlPlaneReconciler) reconcileKubeAPIServer(ctx context.Contex
 	if err := r.Get(ctx, client.ObjectKeyFromObject(clientCertSecret), clientCertSecret); err != nil {
 		return fmt.Errorf("failed to get admin client cert secret: %w", err)
 	}
-	bootstrapClientCertSecret := manifests.KASMachineBootstrapClientCertSecret(hcp.Namespace)
-	if err := r.Get(ctx, client.ObjectKeyFromObject(bootstrapClientCertSecret), bootstrapClientCertSecret); err != nil {
-		return fmt.Errorf("failed to get bootstrap client cert secret: %w", err)
-	}
 
 	serviceKubeconfigSecret := manifests.KASServiceKubeconfigSecret(hcp.Namespace)
 	if _, err := controllerutil.CreateOrUpdate(ctx, r, serviceKubeconfigSecret, func() error {
@@ -1455,13 +1449,6 @@ func (r *HostedControlPlaneReconciler) reconcileKubeAPIServer(ctx context.Contex
 		return kas.ReconcileExternalKubeconfigSecret(externalKubeconfigSecret, clientCertSecret, rootCA, p.OwnerRef, p.ExternalURL(), p.ExternalKubeconfigKey())
 	}); err != nil {
 		return fmt.Errorf("failed to reconcile external kubeconfig secret: %w", err)
-	}
-
-	bootstrapKubeconfigSecret := manifests.KASBootstrapKubeconfigSecret(hcp.Namespace)
-	if _, err := controllerutil.CreateOrUpdate(ctx, r, bootstrapKubeconfigSecret, func() error {
-		return kas.ReconcileBootstrapKubeconfigSecret(bootstrapKubeconfigSecret, bootstrapClientCertSecret, rootCA, p.OwnerRef, p.ExternalURL())
-	}); err != nil {
-		return fmt.Errorf("failed to reconcile bootstrap kubeconfig secret: %w", err)
 	}
 
 	kubeAPIServerAuditConfig := manifests.KASAuditConfig(hcp.Namespace)

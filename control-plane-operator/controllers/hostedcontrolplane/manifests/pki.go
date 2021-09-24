@@ -95,15 +95,6 @@ func KASAdminClientCertSecret(ns string) *corev1.Secret {
 	}
 }
 
-func KASMachineBootstrapClientCertSecret(ns string) *corev1.Secret {
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kas-bootstrap-client",
-			Namespace: ns,
-		},
-	}
-}
-
 func ServiceAccountSigningKeySecret(ns string) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

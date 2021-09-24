@@ -45,10 +45,6 @@ func ReconcileExternalKubeconfigSecret(secret, cert, ca *corev1.Secret, ownerRef
 	return reconcileKubeconfig(secret, cert, ca, externalURL, secretKey, manifests.KubeconfigScopeExternal, ownerRef)
 }
 
-func ReconcileBootstrapKubeconfigSecret(secret, cert, ca *corev1.Secret, ownerRef config.OwnerRef, externalURL string) error {
-	return reconcileKubeconfig(secret, cert, ca, externalURL, "", manifests.KubeconfigScopeBootstrap, ownerRef)
-}
-
 func reconcileKubeconfig(secret, cert, ca *corev1.Secret, url string, key string, scope manifests.KubeconfigScope, ownerRef config.OwnerRef) error {
 	ownerRef.ApplyTo(secret)
 	caBytes := ca.Data[pki.CASignerCertMapKey]
